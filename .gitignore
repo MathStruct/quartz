@@ -10,5 +10,3 @@ private/
 .replit
 replit.nix
 .tikz-cache
-content/*
-!content/.gitkeep
