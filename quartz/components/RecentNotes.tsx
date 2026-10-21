@@ -4,6 +4,7 @@ import { QuartzPluginData } from "../plugins/vfile"
 import { byDateAndAlphabetical } from "./PageList"
 import style from "./styles/recentNotes.scss"
 import { Date, getDate } from "./Date"
+import { Authors, getAuthors } from "./Authors"
 import { GlobalConfiguration } from "../cfg"
 import { i18n } from "../i18n"
 import { classNames } from "../util/lang"
@@ -53,9 +54,14 @@ export default ((userOpts?: Partial<Options>) => {
                       </a>
                     </h3>
                   </div>
-                  {page.dates && (
+                  {(page.dates || getAuthors(page).length > 0) && (
                     <p class="meta">
-                      <Date date={getDate(cfg, page)!} locale={cfg.locale} />
+                      {page.dates && <Date date={getDate(cfg, page)!} locale={cfg.locale} />}
+                      {getAuthors(page).length > 0 && (
+                        <span class="byline">
+                          by <Authors data={page} currentSlug={fileData.slug!} />
+                        </span>
+                      )}
                     </p>
                   )}
                   {opts.showTags && (

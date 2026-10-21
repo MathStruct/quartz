@@ -1,0 +1,25 @@
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    if: ${{ github.repository == 'MathStruct/quartz' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Types and formatting
+        run: npm run check
+      - name: Tests
+        run: npm test
+      - name: Build Quartz's docs with the preset
+        run: npx quartz build -d docs

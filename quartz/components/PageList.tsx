@@ -1,6 +1,7 @@
 import { FullSlug, isFolderPath, resolveRelative } from "../util/path"
 import { QuartzPluginData } from "../plugins/vfile"
 import { Date, getDate } from "./Date"
+import { Authors, getAuthors } from "./Authors"
 import { QuartzComponent, QuartzComponentProps } from "./types"
 import { GlobalConfiguration } from "../cfg"
 
@@ -82,6 +83,11 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
                     {title}
                   </a>
                 </h3>
+                {getAuthors(page).length > 0 && (
+                  <p class="byline">
+                    by <Authors data={page} currentSlug={fileData.slug!} />
+                  </p>
+                )}
               </div>
               <ul class="tags">
                 {tags.map((tag) => (
@@ -106,6 +112,12 @@ export const PageList: QuartzComponent = ({ cfg, fileData, allFiles, limit, sort
 PageList.css = `
 .section h3 {
   margin: 0;
+}
+
+.section > .desc > .byline {
+  margin: 0.2rem 0 0 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
 }
 
 .section > .tags {

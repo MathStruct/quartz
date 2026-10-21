@@ -1,4 +1,5 @@
 import { Date, getDate } from "./Date"
+import { Authors, getAuthors } from "./Authors"
 import { QuartzComponentConstructor, QuartzComponentProps } from "./types"
 import readingTime from "reading-time"
 import { classNames } from "../util/lang"
@@ -11,11 +12,16 @@ interface ContentMetaOptions {
    * Whether to display reading time
    */
   showReadingTime: boolean
+  /**
+   * Whether to display the `authors` frontmatter as a byline
+   */
+  showAuthors: boolean
   showComma: boolean
 }
 
 const defaultOptions: ContentMetaOptions = {
   showReadingTime: true,
+  showAuthors: true,
   showComma: true,
 }
 
@@ -28,6 +34,14 @@ export default ((opts?: Partial<ContentMetaOptions>) => {
 
     if (text) {
       const segments: (string | JSX.Element)[] = []
+
+      if (options.showAuthors && getAuthors(fileData).length > 0) {
+        segments.push(
+          <span>
+            by <Authors data={fileData} currentSlug={fileData.slug!} />
+          </span>,
+        )
+      }
 
       if (fileData.dates) {
         segments.push(<Date date={getDate(cfg, fileData)!} locale={cfg.locale} />)

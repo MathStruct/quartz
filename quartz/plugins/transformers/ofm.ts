@@ -202,6 +202,15 @@ export const ObsidianFlavoredMarkdown: QuartzTransformerPlugin<Partial<Options>>
             return `${embedDisplay}[${displayAlias.replace(/^\|/, "")}](${rawFp})`
           }
 
+          // an alias containing math or inline code (e.g. [[Corelation|$\mathbf{Corel}$]]) would be
+          // split into several mdast nodes by remark-math / inline code parsing, so the wikilink
+          // could no longer be found later. Emit a regular markdown link instead, whose label
+          // markdown parses as usual; CrawlLinks resolves its target like any wikilink.
+          const aliasText = rawAlias?.replace(/^\\?\|/, "")
+          if (!embedDisplay && aliasText && /[$`]/.test(aliasText)) {
+            return `[${aliasText}](<${fp}${displayAnchor}>)`
+          }
+
           return `${embedDisplay}[[${fp}${displayAnchor}${displayAlias}]]`
         })
       }
