@@ -1,4 +1,4 @@
-import { siteLayout } from "./mathstruct/preset"
+import { siteLayout } from "./mathstruct/layout"
 
 // replaced by a site's own layout at build time; see quartz.config.ts
 export const { sharedPageComponents, defaultContentPageLayout, defaultListPageLayout } = siteLayout(

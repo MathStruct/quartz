@@ -1,29 +1,31 @@
 /**
- * The MathStruct preset: everything the MathStruct sites share, so that a site's own
- * `quartz.config.ts` and `quartz.layout.ts` only say what is particular to it (title, address,
- * footer links, comment threads).
+ * The MathStruct preset, configuration half (the layout half is ./layout.ts): everything the
+ * MathStruct sites share, so that a site's own `quartz.config.ts` and `quartz.layout.ts` only
+ * say what is particular to it (title, address, footer links, comment threads).
  *
  * Every plugin in this fork is switched on for every site. A plugin that a note does not use
  * costs nothing: TikZ only touches ```tikz fences, the tabs plugin only ```tabs fences, Typst
  * only runs on pages that ask for it. To give all sites a new extension, add it here.
  *
  *   // site/quartz.config.ts
- *   import { siteConfig } from "./mathstruct/preset"
+ *   import { siteConfig } from "./mathstruct/config"
  *   export default siteConfig({ pageTitle: "Sophia", baseUrl: "mathstruct.org/Sophia" })
  *
  *   // site/quartz.layout.ts
- *   import { siteLayout } from "./mathstruct/preset"
+ *   import { siteLayout } from "./mathstruct/layout"
  *   export const { sharedPageComponents, defaultContentPageLayout, defaultListPageLayout } =
  *     siteLayout({ footerLinks: { GitHub: "https://github.com/MathStruct/Sophia" } })
  *
  * Both files are copied to the root of the Quartz checkout by `mathstruct/site.sh`, which is why
  * the import paths are relative to that root.
+ *
+ * The two halves are separate modules on purpose: Quartz's worker threads load the
+ * configuration but not the layout, and the configuration must not import the components (the
+ * import cycle leaves them undefined in the workers).
  */
-import { GlobalConfiguration, PageLayout, QuartzConfig, SharedLayout } from "../quartz/cfg"
+import { GlobalConfiguration, QuartzConfig } from "../quartz/cfg"
 import * as Plugin from "../quartz/plugins"
-import * as Component from "../quartz/components"
-import { QuartzComponent } from "../quartz/components/types"
-import { setPeoplePages } from "../quartz/components/Authors"
+import { setPeoplePages } from "../quartz/util/people"
 import { ValidLocale } from "../quartz/i18n"
 import { RenderEngine } from "../quartz/plugins/transformers/latex"
 
@@ -35,7 +37,7 @@ export interface SiteOptions {
   /** without protocol, e.g. "mathstruct.org/Sophia" */
   baseUrl: string
   locale?: ValidLocale
-  /** added to the patterns every site ignores (private/, templates/, .obsidian, .tikz-cache) */
+  /** added to the patterns every site ignores (private/, .obsidian, .tikz-cache) */
   ignorePatterns?: string[]
   /** which date a page shows and is sorted by (default "modified"; a blog wants "created") */
   defaultDateType?: GlobalConfiguration["defaultDateType"]
@@ -60,7 +62,7 @@ export interface SiteOptions {
 }
 
 /** the patterns every site ignores */
-const ignoredEverywhere = ["private", "templates", ".obsidian", ".tikz-cache"]
+const ignoredEverywhere = ["private", ".obsidian", ".tikz-cache"]
 
 export function siteConfig(o: SiteOptions): QuartzConfig {
   if (o.peoplePages) setPeoplePages(o.peoplePages)
@@ -156,116 +158,6 @@ export function siteConfig(o: SiteOptions): QuartzConfig {
         Plugin.NotFoundPage(),
         // Plugin.CustomOgImages() is left out: it slows the build considerably
       ],
-    },
-  }
-}
-
-/** a giscus thread under every page, stored in a repository's GitHub Discussions */
-export interface CommentOptions {
-  repo: `${string}/${string}`
-  repoId: string
-  category: string
-  categoryId: string
-}
-
-export interface LayoutOptions {
-  footerLinks: Record<string, string>
-  /** giscus ids (from giscus.app); no comment threads without them */
-  comments?: CommentOptions
-  /** e.g. false on a preview build; a single note opts out with `comments: false` */
-  commentsEnabled?: boolean
-  /** an image next to the site title, from the site root (e.g. "static/icon.png") */
-  icon?: string
-  /** options for the file explorer, e.g. a sortFn */
-  explorer?: Parameters<typeof Component.Explorer>[0]
-  /** components at the top of the right column of content pages (e.g. latest blog posts) */
-  right?: QuartzComponent[]
-}
-
-export function siteLayout(o: LayoutOptions): {
-  sharedPageComponents: SharedLayout
-  defaultContentPageLayout: PageLayout
-  defaultListPageLayout: PageLayout
-} {
-  const comments = o.comments
-    ? [
-        Component.ConditionalRender({
-          component: Component.Comments({
-            provider: "giscus",
-            options: {
-              ...o.comments,
-              mapping: "pathname",
-              strict: true,
-              reactionsEnabled: true,
-              inputPosition: "bottom",
-            },
-          }),
-          // not on the tag listings
-          condition: (page) =>
-            (o.commentsEnabled ?? true) && !(page.fileData.slug ?? "").startsWith("tags/"),
-        }),
-      ]
-    : []
-
-  const title = Component.PageTitle({ icon: o.icon })
-  const explorer = Component.Explorer(o.explorer)
-
-  return {
-    sharedPageComponents: {
-      head: Component.Head(),
-      header: [],
-      afterBody: comments,
-      footer: Component.Footer({ links: o.footerLinks }),
-    },
-
-    defaultContentPageLayout: {
-      beforeBody: [
-        Component.ConditionalRender({
-          component: Component.Breadcrumbs(),
-          condition: (page) => page.fileData.slug !== "index",
-        }),
-        Component.ArticleTitle(),
-        // the landing page is not an article: no date or reading time on it
-        Component.ConditionalRender({
-          component: Component.ContentMeta(),
-          condition: (page) => page.fileData.slug !== "index",
-        }),
-        Component.TagList(),
-      ],
-      left: [
-        title,
-        Component.MobileOnly(Component.Spacer()),
-        Component.Flex({
-          components: [
-            { Component: Component.Search(), grow: true },
-            { Component: Component.Darkmode() },
-            { Component: Component.ReaderMode() },
-          ],
-        }),
-        explorer,
-      ],
-      right: [
-        ...(o.right ?? []),
-        Component.Graph(),
-        Component.DesktopOnly(Component.TableOfContents()),
-        Component.Backlinks(),
-      ],
-    },
-
-    defaultListPageLayout: {
-      beforeBody: [Component.Breadcrumbs(), Component.ArticleTitle(), Component.ContentMeta()],
-      left: [
-        title,
-        Component.MobileOnly(Component.Spacer()),
-        Component.Flex({
-          components: [
-            { Component: Component.Search(), grow: true },
-            { Component: Component.Darkmode() },
-          ],
-        }),
-        explorer,
-      ],
-      right: [],
     },
   }
 }

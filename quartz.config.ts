@@ -1,4 +1,4 @@
-import { siteConfig } from "./mathstruct/preset"
+import { siteConfig } from "./mathstruct/config"
 
 /**
  * This repository is not a site: it is the Quartz that the MathStruct sites are built with.

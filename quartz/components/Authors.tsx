@@ -1,6 +1,7 @@
 import { slug as slugAnchor } from "github-slugger"
 import { QuartzPluginData } from "../plugins/vfile"
 import { FullSlug, SimpleSlug, resolveRelative } from "../util/path"
+import { peoplePages } from "../util/people"
 
 /**
  * Byline support for the blog: reads `authors:` (or `author:`) from frontmatter,
@@ -15,15 +16,9 @@ export function getAuthors(data: QuartzPluginData): string[] {
   return parts.map((author) => String(author).trim()).filter((author) => author.length > 0)
 }
 
-// Author names link to their pages: "Daniel Boigk" → <people>/daniel-boigk. The people pages
-// live on the organisation site, so by default every site links there; the organisation site
-// itself sets a site-relative "people/" (see mathstruct/preset.ts).
-let people = "https://mathstruct.org/people/"
-export function setPeoplePages(url: string) {
-  people = url.endsWith("/") ? url : url + "/"
-}
+// author names link to their pages: "Daniel Boigk" → <people>/daniel-boigk (see util/people.ts)
 const isAbsolute = (url: string) => /^https?:\/\//.test(url)
-const personPage = (author: string) => `${people}${slugAnchor(author)}`
+const personPage = (author: string) => `${peoplePages()}${slugAnchor(author)}`
 
 type Props = {
   data: QuartzPluginData
@@ -40,9 +35,9 @@ export function Authors({ data, currentSlug }: Props) {
         <>
           {i > 0 ? ", " : ""}
           <a
-            class={isAbsolute(people) ? "external" : "internal"}
+            class={isAbsolute(peoplePages()) ? "external" : "internal"}
             href={
-              isAbsolute(people)
+              isAbsolute(peoplePages())
                 ? personPage(author)
                 : resolveRelative(currentSlug, personPage(author) as SimpleSlug)
             }

@@ -25,7 +25,7 @@ once, and every site picks it up on its next build.
 | Bylines         | `components/Authors.tsx` (+ `ContentMeta`, `PageList`, `RecentNotes`) | `authors:` in the frontmatter shows "by …", linked to the person's page on mathstruct.org/people                                                                                                                                                                                              |
 | Site icon       | `components/PageTitle.tsx`                                            | optional image next to the site title                                                                                                                                                                                                                                                         |
 | fixes           | `ofm.ts`, `mermaid.inline.ts`, `spa.inline.ts`                        | a wikilink whose label has math or code (`[[Corelation\|$\mathbf{Corel}$]]`) no longer breaks; a Mermaid `<<trait>>` no longer swallows the diagram; links to pages on the same domain that are not part of the site (e.g. the API docs) load normally instead of being morphed into the page |
-| preset          | `mathstruct/preset.ts`                                                | the shared configuration: theme, fonts, all plugins switched on, layout, giscus comments                                                                                                                                                                                                      |
+| preset          | `mathstruct/config.ts`, `layout.ts`                                   | the shared configuration: theme, fonts, all plugins switched on, layout, giscus comments                                                                                                                                                                                                      |
 | build script    | `mathstruct/site.sh`                                                  | builds one site from its config and its vault                                                                                                                                                                                                                                                 |
 
 ## How a site uses it
@@ -50,12 +50,12 @@ site/build.sh --serve    # live preview on http://localhost:8080
 change pushed here reaches every site the next time it is built. To hold a site at a version,
 set `QUARTZ_REF` in its `build.sh` to a tag or a commit.
 
-The options of `siteConfig` and `siteLayout` are documented in `mathstruct/preset.ts`.
+The options of `siteConfig` and `siteLayout` are documented in `mathstruct/config.ts` and `mathstruct/layout.ts`.
 
 ## Changing it
 
 1. Change this repository, e.g. add a plugin in `quartz/plugins/` and switch it on in
-   `mathstruct/preset.ts`.
+   `mathstruct/config.ts` (a component: `mathstruct/layout.ts`).
 2. Try it on a site without pushing: point the site's build at this checkout,
 
    ```sh
