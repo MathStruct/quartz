@@ -1,3 +1,4 @@
+import { isTranslation, translationLanguages } from "../../util/translations"
 import path from "path"
 import { QuartzEmitterPlugin } from "../types"
 import { QuartzComponentProps } from "../../components/types"
@@ -24,7 +25,10 @@ async function processContent(
   resources: StaticResources,
 ) {
   const slug = fileData.slug!
-  const cfg = ctx.cfg.configuration
+  const translation = fileData.translation
+  const cfg = translation
+    ? { ...ctx.cfg.configuration, locale: translationLanguages[translation.lang].locale }
+    : ctx.cfg.configuration
   const externalResources = pageResources(pathToRoot(slug), resources)
   const componentData: QuartzComponentProps = {
     ctx,
@@ -74,7 +78,7 @@ export const ContentPage: QuartzEmitterPlugin<Partial<FullPageLayout>> = (userOp
       ]
     },
     async *emit(ctx, content, resources) {
-      const allFiles = content.map((c) => c[1].data)
+      const allFiles = content.map((c) => c[1].data).filter((d) => !isTranslation(d))
       let containsIndex = false
 
       for (const [tree, file] of content) {
@@ -98,7 +102,7 @@ export const ContentPage: QuartzEmitterPlugin<Partial<FullPageLayout>> = (userOp
       }
     },
     async *partialEmit(ctx, content, resources, changeEvents) {
-      const allFiles = content.map((c) => c[1].data)
+      const allFiles = content.map((c) => c[1].data).filter((d) => !isTranslation(d))
 
       // find all slugs that changed or were added
       const changedSlugs = new Set<string>()

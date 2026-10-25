@@ -51,7 +51,8 @@ export default ((opts?: Partial<BreadcrumbOptions>) => {
     ctx,
   }: QuartzComponentProps) => {
     const trie = (ctx.trie ??= trieFromAllFiles(allFiles))
-    const slugParts = fileData.slug!.split("/")
+    // a translation sits where its original does
+    const slugParts = (fileData.translation?.original ?? fileData.slug!).split("/")
     const pathNodes = trie.ancestryChain(slugParts)
 
     if (!pathNodes) {
@@ -67,6 +68,7 @@ export default ((opts?: Partial<BreadcrumbOptions>) => {
       // For last node (current page), set empty path
       if (idx === pathNodes.length - 1) {
         crumb.path = ""
+        if (fileData.translation) crumb.displayName = fileData.frontmatter?.title ?? ""
       }
 
       return crumb

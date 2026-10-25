@@ -1,3 +1,4 @@
+import { translationSlug, translationSuffix } from "./translations"
 import { slug as slugAnchor } from "github-slugger"
 import type { Element as HastElement } from "hast"
 import { clone } from "./clone"
@@ -78,6 +79,14 @@ export function slugifyFilePath(fp: FilePath, excludeExt?: boolean): FullSlug {
   }
 
   let slug = sluggify(withoutFileExt)
+
+  // a translation, `Note.zh.md`, or a link to one, `Note.zh`: slug `Note-zh` (util/translations.ts)
+  if (!ext) {
+    slug = translationSlug(slug)
+  } else if (translationSuffix(ext)) {
+    slug = translationSlug(slug + ext)
+    ext = ""
+  }
 
   // treat _index as index
   if (endsWith(slug, "_index")) {

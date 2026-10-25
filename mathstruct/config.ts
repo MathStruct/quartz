@@ -137,6 +137,8 @@ export function siteConfig(o: SiteOptions): QuartzConfig {
         Plugin.TableOfContents(),
         // "shortest" resolves [[links]] by note name, exactly as Obsidian does
         Plugin.CrawlLinks({ markdownLinkResolution: "shortest" }),
+        // after CrawlLinks: `Note.zh.md` translates `Note.md` (quartz/util/translations.ts)
+        Plugin.Translations(),
         Plugin.Description(),
         Plugin.Latex({
           renderEngine: math,

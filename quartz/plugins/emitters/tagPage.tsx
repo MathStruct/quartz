@@ -1,3 +1,4 @@
+import { isTranslation } from "../../util/translations"
 import { QuartzEmitterPlugin } from "../types"
 import { QuartzComponentProps } from "../../components/types"
 import HeaderConstructor from "../../components/Header"
@@ -122,7 +123,7 @@ export const TagPage: QuartzEmitterPlugin<Partial<TagPageOptions>> = (userOpts) 
       ]
     },
     async *emit(ctx, content, resources) {
-      const allFiles = content.map((c) => c[1].data)
+      const allFiles = content.map((c) => c[1].data).filter((d) => !isTranslation(d))
       const cfg = ctx.cfg.configuration
       const [tags, tagDescriptions] = computeTagInfo(allFiles, content, cfg.locale)
 
@@ -131,7 +132,7 @@ export const TagPage: QuartzEmitterPlugin<Partial<TagPageOptions>> = (userOpts) 
       }
     },
     async *partialEmit(ctx, content, resources, changeEvents) {
-      const allFiles = content.map((c) => c[1].data)
+      const allFiles = content.map((c) => c[1].data).filter((d) => !isTranslation(d))
       const cfg = ctx.cfg.configuration
 
       // Find all tags that need to be updated based on changed files

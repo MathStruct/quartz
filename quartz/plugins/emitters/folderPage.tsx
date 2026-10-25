@@ -1,3 +1,4 @@
+import { isTranslation } from "../../util/translations"
 import { QuartzEmitterPlugin } from "../types"
 import { QuartzComponentProps } from "../../components/types"
 import HeaderConstructor from "../../components/Header"
@@ -129,7 +130,7 @@ export const FolderPage: QuartzEmitterPlugin<Partial<FolderPageOptions>> = (user
       ]
     },
     async *emit(ctx, content, resources) {
-      const allFiles = content.map((c) => c[1].data)
+      const allFiles = content.map((c) => c[1].data).filter((d) => !isTranslation(d))
       const cfg = ctx.cfg.configuration
 
       const folders: Set<SimpleSlug> = new Set(
@@ -146,7 +147,7 @@ export const FolderPage: QuartzEmitterPlugin<Partial<FolderPageOptions>> = (user
       yield* processFolderInfo(ctx, folderInfo, allFiles, opts, resources)
     },
     async *partialEmit(ctx, content, resources, changeEvents) {
-      const allFiles = content.map((c) => c[1].data)
+      const allFiles = content.map((c) => c[1].data).filter((d) => !isTranslation(d))
       const cfg = ctx.cfg.configuration
 
       // Find all folders that need to be updated based on changed files

@@ -71,6 +71,8 @@ export function siteLayout(o: LayoutOptions): {
           condition: (page) => page.fileData.slug !== "index",
         }),
         Component.ArticleTitle(),
+        // "中文" on a page with a translation, "English" on the translation
+        Component.LanguageSwitch(),
         // the landing page is not an article: no date or reading time on it
         Component.ConditionalRender({
           component: Component.ContentMeta(),
@@ -92,7 +94,11 @@ export function siteLayout(o: LayoutOptions): {
       ],
       right: [
         ...(o.right ?? []),
-        Component.Graph(),
+        // a translation is not in the graph; it would be a lone node
+        Component.ConditionalRender({
+          component: Component.Graph(),
+          condition: (page) => !page.fileData.translation,
+        }),
         Component.DesktopOnly(Component.TableOfContents()),
         Component.Backlinks(),
       ],
