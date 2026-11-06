@@ -119,6 +119,12 @@ function siteBase(site: SearchSite): string {
   return /^https?:\/\//.test(u) ? u : `https://${u}`
 }
 
+/** a page of another site; `index` pages are the folder itself, as Quartz links them */
+function remoteUrl(site: SearchSite, slug: FullSlug): string {
+  const path = slug === "index" ? "" : slug.endsWith("/index") ? slug.slice(0, -5) : slug
+  return `${siteBase(site)}/${path}`
+}
+
 function loadRemoteSites(sites: SearchSite[]) {
   for (const site of sites) {
     if (remoteSites.has(site.url) || remoteLoading.has(site.url)) continue
@@ -397,7 +403,7 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
     return {
       id,
       slug,
-      url: from.site ? `${siteBase(from.site)}/${slug}` : resolveUrl(slug).toString(),
+      url: from.site ? remoteUrl(from.site, slug) : resolveUrl(slug).toString(),
       site: from.site,
       title: searchType === "tags" ? page.title : highlight(term, page.title ?? ""),
       content: highlight(term, page.content ?? "", true),
