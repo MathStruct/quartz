@@ -4,13 +4,23 @@ import style from "./styles/search.scss"
 import script from "./scripts/search.inline"
 import { classNames } from "../util/lang"
 import { i18n } from "../i18n"
+import { SearchSite, sitesOtherThan } from "../util/searchSites"
+
+export type { SearchSite }
 
 export interface SearchOptions {
   enablePreview: boolean
+  /**
+   * Further sites searched after this one, their results listed below this site's. The site
+   * that is the longest prefix of this site's own `baseUrl` is left out (so a preview build at
+   * `<site>/preview` leaves out `<site>`). Their indices load the first time the search opens.
+   */
+  otherSites: SearchSite[]
 }
 
 const defaultOptions: SearchOptions = {
   enablePreview: true,
+  otherSites: [],
 }
 
 export default ((userOpts?: Partial<SearchOptions>) => {
@@ -39,7 +49,11 @@ export default ((userOpts?: Partial<SearchOptions>) => {
               aria-label={searchPlaceholder}
               placeholder={searchPlaceholder}
             />
-            <div class="search-layout" data-preview={opts.enablePreview}></div>
+            <div
+              class="search-layout"
+              data-preview={opts.enablePreview}
+              data-sites={JSON.stringify(sitesOtherThan(opts.otherSites, cfg.baseUrl))}
+            ></div>
           </div>
         </div>
       </div>

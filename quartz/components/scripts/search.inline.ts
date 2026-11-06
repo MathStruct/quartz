@@ -12,6 +12,18 @@ interface Item {
   [key: string]: any
 }
 
+/** another site searched after this one (`SearchSite` in Search.tsx) */
+interface SearchSite {
+  name: string
+  url: string
+}
+
+/** a result as displayed: the page's URL, and the other site it is on, if any */
+interface Hit extends Item {
+  url: string
+  site?: SearchSite
+}
+
 // Can be expanded with things like "term" in the future
 type SearchType = "basic" | "tags"
 let searchType: SearchType = "basic"
@@ -61,30 +73,85 @@ const encoder = (str: string): string[] => {
   return tokens
 }
 
-let index = new FlexSearch.Document<Item>({
-  encode: encoder,
-  document: {
-    id: "id",
-    tag: "tags",
-    index: [
-      {
-        field: "title",
-        tokenize: "forward",
-      },
-      {
-        field: "content",
-        tokenize: "forward",
-      },
-      {
-        field: "tags",
-        tokenize: "forward",
-      },
-    ],
-  },
-})
+const newIndex = () =>
+  new FlexSearch.Document<Item>({
+    encode: encoder,
+    document: {
+      id: "id",
+      tag: "tags",
+      index: [
+        {
+          field: "title",
+          tokenize: "forward",
+        },
+        {
+          field: "content",
+          tokenize: "forward",
+        },
+        {
+          field: "tags",
+          tokenize: "forward",
+        },
+      ],
+    },
+  })
+let index = newIndex()
+
+/**
+ * The other sites' indices, kept across navigations. Each is fetched from
+ * `<site>/static/contentIndex.json` and indexed the first time the search opens; a site that
+ * cannot be fetched (offline, not yet deployed) is left out silently.
+ */
+interface RemoteSite {
+  site: SearchSite
+  data: ContentIndex
+  slugs: FullSlug[]
+  index: ReturnType<typeof newIndex>
+}
+const remoteSites: Map<string, RemoteSite> = new Map()
+const remoteLoading: Set<string> = new Set()
+/** re-runs the open search when another site's index arrives (set by the current page) */
+let onRemoteReady: (() => void) | null = null
+const remoteResultsPerSite = 3
+
+function siteBase(site: SearchSite): string {
+  const u = site.url.replace(/\/+$/, "")
+  return /^https?:\/\//.test(u) ? u : `https://${u}`
+}
+
+function loadRemoteSites(sites: SearchSite[]) {
+  for (const site of sites) {
+    if (remoteSites.has(site.url) || remoteLoading.has(site.url)) continue
+    remoteLoading.add(site.url)
+    fetch(`${siteBase(site)}/static/contentIndex.json`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`${res.status}`)
+        return res.json() as Promise<ContentIndex>
+      })
+      .then(async (data) => {
+        const idx = newIndex()
+        const slugs = Object.keys(data) as FullSlug[]
+        await Promise.all(
+          slugs.map((slug, id) =>
+            idx.addAsync(id, {
+              id,
+              slug,
+              title: data[slug].title,
+              content: data[slug].content,
+              tags: data[slug].tags,
+            }),
+          ),
+        )
+        remoteSites.set(site.url, { site, data, slugs, index: idx })
+        onRemoteReady?.()
+      })
+      .catch(() => {})
+      .finally(() => remoteLoading.delete(site.url))
+  }
+}
 
 const p = new DOMParser()
-const fetchContentCache: Map<FullSlug, Element[]> = new Map()
+const fetchContentCache: Map<string, Element[]> = new Map()
 const contextWindowWords = 30
 const numSearchResults = 8
 const numTagResults = 5
@@ -208,6 +275,10 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
   }
 
   const enablePreview = searchLayout.dataset.preview === "true"
+  let otherSites: SearchSite[] = []
+  try {
+    otherSites = JSON.parse(searchLayout.dataset.sites ?? "[]")
+  } catch {}
   let preview: HTMLDivElement | undefined = undefined
   let previewInner: HTMLDivElement | undefined = undefined
   const results = document.createElement("div")
@@ -238,6 +309,12 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
     if (sidebar) sidebar.style.zIndex = "1"
     container.classList.add("active")
     searchBar.focus()
+    loadRemoteSites(otherSites)
+  }
+
+  // when another site's index arrives, search it too for the term already typed
+  onRemoteReady = () => {
+    if (container.classList.contains("active") && searchBar.value !== "") void runSearch()
   }
 
   let currentHover: HTMLInputElement | null = null
@@ -307,14 +384,24 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
     }
   }
 
-  const formatForDisplay = (term: string, id: number) => {
-    const slug = idDataMap[id]
+  const formatForDisplay = (
+    term: string,
+    id: number,
+    from: { data: ContentIndex; slugs: FullSlug[]; site?: SearchSite } = {
+      data,
+      slugs: idDataMap,
+    },
+  ): Hit => {
+    const slug = from.slugs[id]
+    const page = from.data[slug]
     return {
       id,
       slug,
-      title: searchType === "tags" ? data[slug].title : highlight(term, data[slug].title ?? ""),
-      content: highlight(term, data[slug].content ?? "", true),
-      tags: highlightTags(term.substring(1), data[slug].tags),
+      url: from.site ? `${siteBase(from.site)}/${slug}` : resolveUrl(slug).toString(),
+      site: from.site,
+      title: searchType === "tags" ? page.title : highlight(term, page.title ?? ""),
+      content: highlight(term, page.content ?? "", true),
+      tags: highlightTags(term.substring(1), page.tags),
     }
   }
 
@@ -338,14 +425,21 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
     return new URL(resolveRelative(currentSlug, slug), location.toString())
   }
 
-  const resultToHTML = ({ slug, title, content, tags }: Item) => {
+  const resultToHTML = ({ slug, url, site, title, content, tags }: Hit) => {
     const htmlTags = tags.length > 0 ? `<ul class="tags">${tags.join("")}</ul>` : ``
     const itemTile = document.createElement("a")
     itemTile.classList.add("result-card")
-    itemTile.id = slug
-    itemTile.href = resolveUrl(slug).toString()
+    itemTile.id = site ? `${site.url}:${slug}` : slug
+    itemTile.dataset.url = url
+    itemTile.href = url
+    const siteLabel = site ? `<span class="result-site">${site.name}</span>` : ``
+    if (site) {
+      // another site's page: load it normally instead of morphing it into this site
+      itemTile.dataset.routerIgnore = ""
+      itemTile.classList.add("other-site")
+    }
     itemTile.innerHTML = `
-      <h3 class="card-title">${title}</h3>
+      <h3 class="card-title">${siteLabel}${title}</h3>
       ${htmlTags}
       <p class="card-description">${content}</p>
     `
@@ -373,7 +467,7 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
     return itemTile
   }
 
-  async function displayResults(finalResults: Item[]) {
+  async function displayResults(finalResults: Hit[]) {
     removeAllChildren(results)
     if (finalResults.length === 0) {
       results.innerHTML = `<a class="result-card no-match">
@@ -381,7 +475,11 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
           <p>Try another search term?</p>
       </a>`
     } else {
-      results.append(...finalResults.map(resultToHTML))
+      const cards = finalResults.map(resultToHTML)
+      // a caption above the first result from another site
+      const firstOther = cards.find((c) => c.classList.contains("other-site"))
+      if (firstOther) firstOther.dataset.section = "In other MathStruct vaults"
+      results.append(...cards)
     }
 
     if (finalResults.length === 0 && preview) {
@@ -396,12 +494,11 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
     }
   }
 
-  async function fetchContent(slug: FullSlug): Promise<Element[]> {
-    if (fetchContentCache.has(slug)) {
-      return fetchContentCache.get(slug) as Element[]
+  async function fetchContent(targetUrl: string): Promise<Element[]> {
+    if (fetchContentCache.has(targetUrl)) {
+      return fetchContentCache.get(targetUrl) as Element[]
     }
 
-    const targetUrl = resolveUrl(slug).toString()
     const contents = await fetch(targetUrl)
       .then((res) => res.text())
       .then((contents) => {
@@ -413,14 +510,15 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
         return [...html.getElementsByClassName("popover-hint")]
       })
 
-    fetchContentCache.set(slug, contents)
+    fetchContentCache.set(targetUrl, contents)
     return contents
   }
 
   async function displayPreview(el: HTMLElement | null) {
     if (!searchLayout || !enablePreview || !el || !preview) return
-    const slug = el.id as FullSlug
-    const innerDiv = await fetchContent(slug).then((contents) =>
+    const url = el.dataset.url
+    if (!url) return
+    const innerDiv = await fetchContent(url).then((contents) =>
       contents.flatMap((el) => [...highlightHTML(currentSearchTerm, el as HTMLElement).children]),
     )
     previewInner = document.createElement("div")
@@ -435,13 +533,10 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
     highlights[0]?.scrollIntoView({ block: "start" })
   }
 
-  async function onType(e: HTMLElementEventMap["input"]) {
-    if (!searchLayout || !index) return
-    currentSearchTerm = (e.target as HTMLInputElement).value
-    searchLayout.classList.toggle("display-results", currentSearchTerm !== "")
-    searchType = currentSearchTerm.startsWith("#") ? "tags" : "basic"
-
-    let searchResults: DefaultDocumentSearchResults<Item>
+  // the search options for a typed term; sets `currentSearchTerm` and `searchType` for highlighting
+  function searchOptions(raw: string) {
+    currentSearchTerm = raw
+    searchType = raw.startsWith("#") ? "tags" : "basic"
     if (searchType === "tags") {
       currentSearchTerm = currentSearchTerm.substring(1).trim()
       const separatorIndex = currentSearchTerm.indexOf(" ")
@@ -449,48 +544,87 @@ async function setupSearch(searchElement: Element, currentSlug: FullSlug, data: 
         // search by title and content index and then filter by tag (implemented in flexsearch)
         const tag = currentSearchTerm.substring(0, separatorIndex)
         const query = currentSearchTerm.substring(separatorIndex + 1).trim()
-        searchResults = await index.searchAsync({
-          query: query,
-          // return at least 10000 documents, so it is enough to filter them by tag (implemented in flexsearch)
-          limit: Math.max(numSearchResults, 10000),
-          index: ["title", "content"],
-          tag: { tags: tag },
-        })
-        for (let searchResult of searchResults) {
-          searchResult.result = searchResult.result.slice(0, numSearchResults)
-        }
         // set search type to basic and remove tag from term for proper highlightning and scroll
         searchType = "basic"
         currentSearchTerm = query
-      } else {
-        // default search by tags index
-        searchResults = await index.searchAsync({
-          query: currentSearchTerm,
-          limit: numSearchResults,
-          index: ["tags"],
-        })
+        return {
+          opts: {
+            query: query,
+            // return at least 10000 documents, so it is enough to filter them by tag
+            limit: Math.max(numSearchResults, 10000),
+            index: ["title", "content"],
+            tag: { tags: tag },
+          },
+          truncate: true,
+        }
       }
-    } else if (searchType === "basic") {
-      searchResults = await index.searchAsync({
-        query: currentSearchTerm,
-        limit: numSearchResults,
-        index: ["title", "content"],
-      })
+      // default search by tags index
+      return {
+        opts: { query: currentSearchTerm, limit: numSearchResults, index: ["tags"] },
+        truncate: false,
+      }
     }
+    return {
+      opts: { query: currentSearchTerm, limit: numSearchResults, index: ["title", "content"] },
+      truncate: false,
+    }
+  }
 
+  // ids of one index's results: titles ahead of content ahead of tags
+  async function searchIndex(
+    idx: ReturnType<typeof newIndex>,
+    q: ReturnType<typeof searchOptions>,
+    limit: number,
+  ): Promise<number[]> {
+    const searchResults = (await idx.searchAsync(
+      q.opts as any,
+    )) as DefaultDocumentSearchResults<Item>
+    if (q.truncate) {
+      for (const searchResult of searchResults) {
+        searchResult.result = searchResult.result.slice(0, numSearchResults)
+      }
+    }
     const getByField = (field: string): number[] => {
       const results = searchResults.filter((x) => x.field === field)
       return results.length === 0 ? [] : ([...results[0].result] as number[])
     }
-
-    // order titles ahead of content
     const allIds: Set<number> = new Set([
       ...getByField("title"),
       ...getByField("content"),
       ...getByField("tags"),
     ])
-    const finalResults = [...allIds].map((id) => formatForDisplay(currentSearchTerm, id))
-    await displayResults(finalResults)
+    return [...allIds].slice(0, limit)
+  }
+
+  async function runSearch() {
+    if (!searchLayout || !index) return
+    const raw = searchBar.value
+    searchLayout.classList.toggle("display-results", raw !== "")
+    const q = searchOptions(raw)
+    const term = currentSearchTerm
+
+    const local = (await searchIndex(index, q, Infinity)).map((id) => formatForDisplay(term, id))
+
+    // the other sites, in the order configured: up to a few results each, interleaved by rank
+    const perSite: Hit[][] = []
+    for (const site of otherSites) {
+      const r = remoteSites.get(site.url)
+      if (!r) continue
+      const ids = await searchIndex(r.index, q, remoteResultsPerSite)
+      perSite.push(ids.map((id) => formatForDisplay(term, id, r)))
+    }
+    const others: Hit[] = []
+    for (let rank = 0; rank < remoteResultsPerSite; rank++) {
+      for (const hits of perSite) if (hits[rank]) others.push(hits[rank])
+    }
+
+    // a newer keystroke has started its own search
+    if (searchBar.value !== raw) return
+    await displayResults([...local, ...others.slice(0, numSearchResults)])
+  }
+
+  async function onType() {
+    await runSearch()
   }
 
   document.addEventListener("keydown", shortcutHandler)

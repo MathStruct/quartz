@@ -5,6 +5,7 @@
 import { PageLayout, SharedLayout } from "../quartz/cfg"
 import * as Component from "../quartz/components"
 import { QuartzComponent } from "../quartz/components/types"
+import { SearchSite } from "../quartz/util/searchSites"
 
 /** a giscus thread under every page, stored in a repository's GitHub Discussions */
 export interface CommentOptions {
@@ -13,6 +14,16 @@ export interface CommentOptions {
   category: string
   categoryId: string
 }
+
+/** the MathStruct sites; the search looks through all of them, this site's results first */
+export const mathstructSites: SearchSite[] = [
+  { name: "MathStruct", url: "mathstruct.org" },
+  { name: "CT-ML Wiki", url: "mathstruct.org/CategoryTheory-ML-Wiki" },
+  { name: "Lenticulum.jl", url: "mathstruct.org/Lenticulum.jl" },
+  { name: "LenticulumLM", url: "mathstruct.org/LenticulumLM" },
+  { name: "Sophia", url: "mathstruct.org/Sophia" },
+  { name: "Moonkale", url: "mathstruct.org/Moonkale" },
+]
 
 export interface LayoutOptions {
   footerLinks: Record<string, string>
@@ -26,6 +37,8 @@ export interface LayoutOptions {
   explorer?: Parameters<typeof Component.Explorer>[0]
   /** components at the top of the right column of content pages (e.g. latest blog posts) */
   right?: QuartzComponent[]
+  /** the other sites the search looks through (default: all MathStruct sites; [] for none) */
+  searchSites?: SearchSite[]
 }
 
 export function siteLayout(o: LayoutOptions): {
@@ -54,6 +67,7 @@ export function siteLayout(o: LayoutOptions): {
     : []
 
   const title = Component.PageTitle({ icon: o.icon })
+  const search = Component.Search({ otherSites: o.searchSites ?? mathstructSites })
   const explorer = Component.Explorer(o.explorer)
 
   return {
@@ -85,7 +99,7 @@ export function siteLayout(o: LayoutOptions): {
         Component.MobileOnly(Component.Spacer()),
         Component.Flex({
           components: [
-            { Component: Component.Search(), grow: true },
+            { Component: search, grow: true },
             { Component: Component.Darkmode() },
             { Component: Component.ReaderMode() },
           ],
@@ -110,10 +124,7 @@ export function siteLayout(o: LayoutOptions): {
         title,
         Component.MobileOnly(Component.Spacer()),
         Component.Flex({
-          components: [
-            { Component: Component.Search(), grow: true },
-            { Component: Component.Darkmode() },
-          ],
+          components: [{ Component: search, grow: true }, { Component: Component.Darkmode() }],
         }),
         explorer,
       ],

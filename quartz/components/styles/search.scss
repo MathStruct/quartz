@@ -176,6 +176,30 @@
         & > .results-container {
           overflow-y: auto;
 
+          // results from another MathStruct site: a caption above the first, a label on each
+          & .result-card[data-section]::before {
+            content: attr(data-section);
+            display: block;
+            margin: -0.25em 0 0.75em;
+            font-size: 0.8em;
+            font-weight: $semiBoldWeight;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--gray);
+          }
+
+          & .result-card .result-site {
+            display: inline-block;
+            margin-right: 0.5em;
+            padding: 0 0.4em;
+            border: 1px solid var(--lightgray);
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: $normalWeight;
+            vertical-align: middle;
+            color: var(--darkgray);
+          }
+
           & .result-card {
             overflow: hidden;
             padding: 1em;
