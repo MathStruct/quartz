@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+<!-- Source of quartz/static/icon.png (200 x 200), the MathStruct ∫ in Liberation Serif Regular (SIL OFL 1.1), as on mathstruct.org. Render it to PNG with a headless browser after a change. -->
+<rect x="0.5" y="0.5" width="199" height="199" rx="30" fill="#faf8f8"/>
+<path transform="translate(66.98 14.00) scale(1.7515)" fill="#000" stroke="#000" stroke-width="2.85" stroke-linejoin="round" d="M6 98.2Q4.6 98.2 2.6 97.6Q0.6 97.1 0 96.6V96.2Q0.2 95.6 0.7 93.2Q1.2 90.9 1.4 89.8H2.4Q5.8 93.2 8.6 93.2Q11.2 93.2 12.9 89.3Q14.6 85.5 14.6 79.5L14.3 46.7Q14.3 33.6 15 20.3Q15.3 15.1 17.7 10.5Q20.2 5.9 24.1 2.9Q28 0 31.4 0Q32.6 0 34.8 0.5Q37 1 37.7 1.6V2L36.8 5.2L36 8.4H35Q31.6 5 28.8 5Q26.2 5 24.5 8.8Q22.8 12.6 22.8 18.7L23 45Q23 48.5 22.8 56.4Q22.7 64.3 22.2 78.1Q21.9 83.4 19.5 88Q17 92.6 13.2 95.4Q9.4 98.2 6 98.2Z"/>
+</svg>

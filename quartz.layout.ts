@@ -5,8 +5,8 @@ import { siteLayout } from "./mathstruct/layout"
 // repository's "Announcements" category (only maintainers and the giscus app open threads
 // there; anyone signed in to GitHub can reply and react). A note opts out with
 // `comments: false` in its frontmatter.
-export const { sharedPageComponents, defaultContentPageLayout, defaultListPageLayout } =
-  siteLayout({
+export const { sharedPageComponents, defaultContentPageLayout, defaultListPageLayout } = siteLayout(
+  {
     footerLinks: {
       // set by docs/make.jl through docs/site/build.sh: api/dev/ on master, api/preview/ on a preview
       "API documentation":
@@ -21,4 +21,5 @@ export const { sharedPageComponents, defaultContentPageLayout, defaultListPageLa
     },
     // no threads on a preview build (VAULT_COMMENTS=0, set by docs/make.jl off `master`)
     commentsEnabled: process.env.VAULT_COMMENTS !== "0",
-  })
+  },
+)
