@@ -81,6 +81,15 @@ async function _navigate(url: URL, isBack: boolean = false) {
 
   if (!contents) return
 
+  const html = p.parseFromString(contents, "text/html")
+  // A page on this origin that Quartz did not render (mathstruct.org's front page is an Astro
+  // site; the Lenticulum API docs are Documenter) must load normally: morphed into this page
+  // it would keep this page's styles and lose its own scripts.
+  if (!html.getElementById("quartz-root")) {
+    window.location.assign(url)
+    return
+  }
+
   // notify about to nav
   const event: CustomEventMap["prenav"] = new CustomEvent("prenav", { detail: {} })
   document.dispatchEvent(event)
@@ -89,7 +98,6 @@ async function _navigate(url: URL, isBack: boolean = false) {
   cleanupFns.forEach((fn) => fn())
   cleanupFns.clear()
 
-  const html = p.parseFromString(contents, "text/html")
   normalizeRelativeURLs(html, url)
 
   let title = html.querySelector("title")?.textContent
