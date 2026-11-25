@@ -1,0 +1,515 @@
+// The MathStruct look, shared by every MathStruct site: black and white, as on mathstruct.org's
+// front page. The colours and fonts themselves are set in mathstruct/config.ts; this file
+// does the rest (hairlines, mono labels, the grid behind the page top, buttons, listings,
+// callouts). Loaded by custom.scss right after base.scss; component styles come earlier
+// in the bundle, so these win over them.
+@use "./variables.scss" as *;
+
+:root {
+  --ms-line: color-mix(in srgb, var(--dark) 10%, transparent);
+  --ms-line-strong: color-mix(in srgb, var(--dark) 22%, transparent);
+  --ms-grid: color-mix(in srgb, var(--dark) 5%, transparent);
+  --ms-raised: color-mix(in srgb, var(--dark) 3%, var(--light));
+  --ms-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.35), 0 0 0 1px var(--ms-line);
+  --ms-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+body {
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+// the faint grid behind the top of the page, as on the front page
+body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 620px;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--ms-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ms-grid) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center top;
+  mask-image: radial-gradient(ellipse 55% 100% at 50% 0%, #000 15%, transparent 72%);
+  -webkit-mask-image: radial-gradient(ellipse 55% 100% at 50% 0%, #000 15%, transparent 72%);
+}
+
+::selection {
+  background: var(--dark);
+  color: var(--light);
+}
+
+// ------------------------------------------------------------------------------ type
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+h1.article-title {
+  font-size: clamp(2.2rem, 4vw, 3.1rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.04;
+  margin: 1.1rem 0 1rem;
+}
+
+article {
+  h2 {
+    font-size: 1.65rem;
+    letter-spacing: -0.035em;
+    margin-top: 2.8rem;
+  }
+  h3 {
+    font-size: 1.22rem;
+    margin-top: 2rem;
+  }
+  p,
+  li {
+    line-height: 1.75rem;
+  }
+  p > strong,
+  li > strong {
+    font-weight: 600;
+  }
+}
+
+strong {
+  font-weight: 600;
+}
+
+// links: text colour with a hairline underline, instead of a tinted box
+a {
+  font-weight: 500;
+  color: var(--dark);
+  transition: color 0.2s var(--ms-ease);
+  &:hover {
+    color: var(--dark);
+  }
+}
+
+// (:where keeps this rule at the specificity of `a.internal`, so the breadcrumbs, listings and
+// tags below can style their links their own way)
+:where(.center, .popover, footer) a.internal:where(:not(.tag-link):not(:has(> img))),
+:where(.center, .popover, footer) a.external {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: var(--dark);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: var(--ms-line-strong);
+  transition: text-decoration-color 0.2s var(--ms-ease);
+  &:hover {
+    text-decoration-color: var(--dark);
+  }
+}
+
+a.internal.broken {
+  color: var(--tertiary);
+  text-decoration-style: dashed;
+}
+
+a.external .external-icon > path {
+  fill: var(--tertiary);
+}
+
+blockquote {
+  border-left: 1px solid var(--dark);
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+}
+
+hr {
+  background-color: var(--ms-line);
+}
+
+:not(pre) > code {
+  background: var(--ms-raised);
+  border: 1px solid var(--ms-line);
+  border-radius: 6px;
+  padding: 0.05rem 0.3rem;
+  font-size: 0.86em;
+}
+
+pre {
+  border-radius: 12px;
+  border-color: var(--ms-line);
+  background: var(--ms-raised);
+}
+
+figure[data-rehype-pretty-code-figure] > [data-rehype-pretty-code-title] {
+  border-color: var(--ms-line);
+  border-radius: 8px;
+  font-size: 0.78rem;
+}
+
+article img {
+  border-radius: 12px;
+  border: 1px solid var(--ms-line);
+}
+
+// tables: mono column heads, hairline rows
+.table-container > table {
+  border-collapse: collapse;
+}
+th {
+  font-family: var(--codeFont);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tertiary);
+  border-bottom: 1px solid var(--ms-line-strong);
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+td {
+  padding-top: 0.55rem;
+  padding-bottom: 0.55rem;
+}
+tr {
+  border-bottom: 1px solid var(--ms-line);
+}
+
+// ------------------------------------------------------- labels above the page title
+
+.breadcrumb-container {
+  font-family: var(--codeFont);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  gap: 0.4rem;
+
+  .breadcrumb-element {
+    gap: 0.4rem;
+    a {
+      color: var(--tertiary);
+      font-weight: 400;
+      background: none;
+      text-decoration: none;
+      &:hover {
+        color: var(--dark);
+      }
+    }
+    p {
+      color: var(--gray);
+      margin: 0;
+    }
+  }
+}
+
+.content-meta {
+  font-family: var(--codeFont);
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  color: var(--tertiary);
+  margin-top: 0;
+
+  a {
+    font-weight: 500;
+  }
+}
+
+ul.tags {
+  gap: 0.4rem;
+  margin: 0.9rem 0 0;
+
+  a.internal.tag-link {
+    background: transparent;
+    border: 1px solid var(--ms-line-strong);
+    border-radius: 999px;
+    padding: 0.15rem 0.65rem;
+    font-family: var(--codeFont);
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--darkgray);
+    line-height: 1.4rem;
+    transition:
+      border-color 0.2s var(--ms-ease),
+      color 0.2s var(--ms-ease);
+    &:hover {
+      border-color: var(--dark);
+      color: var(--dark);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------- side panels
+
+// panel headings as mono labels: EXPLORER, GRAPH VIEW, TABLE OF CONTENTS, BACKLINKS
+.explorer .title-button h2,
+.graph > h3,
+button.toc-header h3,
+.backlinks > h3,
+.recent-notes > h3 {
+  font-family: var(--codeFont);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tertiary);
+}
+
+.explorer .title-button,
+button.toc-header {
+  color: var(--tertiary);
+}
+
+.explorer-content {
+  a,
+  .folder-title {
+    font-weight: 400;
+    color: var(--darkgray);
+    transition: color 0.2s var(--ms-ease);
+    &:hover {
+      color: var(--dark);
+    }
+  }
+  .folder-title {
+    font-weight: 500;
+    color: var(--dark);
+  }
+  // (as specific as explorer.scss's own rule, so this one wins)
+  & ul li > a.active {
+    color: var(--dark);
+    font-weight: 600;
+    opacity: 1;
+  }
+}
+
+ul.toc-content.overflow > li > a {
+  font-weight: 400;
+  opacity: 0.5;
+  &.in-view {
+    opacity: 1;
+  }
+}
+
+.backlinks ul li > a,
+.recent-notes ul li a {
+  background: none;
+  padding: 0;
+  font-weight: 400;
+  color: var(--darkgray);
+  &:hover {
+    color: var(--dark);
+  }
+}
+
+.graph > .graph-outer {
+  border: 1px solid var(--ms-line);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 1px 1px, var(--ms-grid) 1px, transparent 0) 0 0 / 16px 16px,
+    var(--light);
+}
+
+// search, theme and reader buttons: hairline pills and circles, as in the front page's nav
+.search > .search-button {
+  height: 2.5rem;
+  border-radius: 999px;
+  border-color: var(--ms-line);
+  transition: border-color 0.2s var(--ms-ease);
+  & > p {
+    font-size: 0.9rem;
+  }
+  &:hover {
+    border-color: var(--ms-line-strong);
+  }
+}
+
+.darkmode,
+.readermode {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--ms-line);
+  border-radius: 999px;
+  transition: border-color 0.2s var(--ms-ease);
+  & svg {
+    width: 17px;
+    height: 17px;
+    top: calc(50% - 8.5px);
+    left: calc(50% - 8.5px);
+    fill: var(--dark);
+  }
+  &:hover {
+    border-color: var(--ms-line-strong);
+  }
+}
+.readermode svg {
+  stroke: var(--dark);
+}
+
+// phones: the sidebar is one row (menu, title, search, theme, reader); the search shrinks
+// to an icon-only circle so the wordmark has room
+@media all and ($mobile) {
+  .page > #quartz-body .sidebar.left {
+    gap: 0.5rem;
+  }
+  .search {
+    flex-grow: 0;
+    margin-left: auto;
+    & > .search-button {
+      width: 2.5rem;
+      padding: 0;
+      justify-content: center;
+      & > p {
+        display: none;
+      }
+      & svg {
+        margin: 0;
+      }
+    }
+  }
+}
+
+.search > .search-container {
+  background: color-mix(in srgb, var(--light) 55%, transparent);
+
+  & > .search-space > * {
+    border-radius: 14px;
+    box-shadow: var(--ms-shadow);
+  }
+  & > .search-space > input {
+    border: none;
+    font-family: var(--headerFont);
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
+  }
+}
+
+.popover > .popover-inner {
+  border: none;
+  border-radius: 14px;
+  box-shadow: var(--ms-shadow);
+}
+
+// ------------------------------------------------------------------- page listings
+
+// the blog, folder and tag pages: one row per page, date in mono on the left
+ul.section-ul {
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--ms-line-strong);
+}
+
+li.section-li {
+  margin: 0;
+  border-bottom: 1px solid var(--ms-line);
+
+  & > .section {
+    grid-template-columns: 9rem 1fr auto;
+    column-gap: 1.25rem;
+    align-items: baseline;
+    padding: 1.15rem 0;
+
+    @media all and ($mobile) {
+      grid-template-columns: 1fr;
+      row-gap: 0.35rem;
+    }
+
+    & .meta {
+      margin: 0;
+      opacity: 1;
+      font-family: var(--codeFont);
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+      color: var(--tertiary);
+    }
+
+    & > .desc > h3 {
+      margin: 0;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      & > a {
+        color: var(--dark);
+        background: none;
+        text-decoration: none;
+        transition: color 0.2s var(--ms-ease);
+        &:hover {
+          color: var(--tertiary);
+        }
+      }
+    }
+
+    & > ul.tags {
+      margin: 0;
+    }
+  }
+}
+
+// ------------------------------------------------------------------- callouts and tabs
+
+// callouts in black and white; the icon still tells them apart
+.callout[data-callout] {
+  --color: var(--dark);
+  --border: var(--ms-line-strong);
+  --bg: var(--ms-raised);
+  border-radius: 12px;
+}
+
+// (prefixed with :root to win over the tab rules further down in custom.scss)
+:root .obsidian-tabs {
+  border-color: var(--ms-line);
+  border-radius: 12px;
+  .tab-nav {
+    background: var(--ms-raised);
+    border-bottom: 1px solid var(--ms-line);
+    .tab-button {
+      font-family: var(--codeFont);
+      font-size: 0.78rem;
+      color: var(--tertiary);
+      border-bottom: 1px solid transparent;
+      margin-bottom: -1px;
+      &.active {
+        background: transparent;
+        color: var(--dark);
+        font-weight: 500;
+        border-bottom-color: var(--dark);
+      }
+    }
+  }
+}
+
+// ------------------------------------------------------------------------------ footer
+
+footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ms-line);
+  opacity: 1;
+
+  & > p {
+    font-family: var(--codeFont);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--tertiary);
+    a {
+      font-weight: 400;
+    }
+  }
+  // the links wrap instead of running off a phone's screen
+  & > ul {
+    flex-wrap: wrap;
+    row-gap: 0.4rem;
+  }
+  & > ul li a {
+    font-weight: 400;
+    color: var(--darkgray);
+    &:hover {
+      color: var(--dark);
+    }
+  }
+}

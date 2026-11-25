@@ -225,10 +225,16 @@ async function setupExplorer(currentSlug: FullSlug) {
     if (scrollTop) {
       explorerUl.scrollTop = parseInt(scrollTop)
     } else {
-      // try to scroll to the active element if it exists
+      // try to scroll to the active element if it exists. Only the explorer list scrolls:
+      // scrollIntoView would scroll the window too, and a visitor arriving from a link would
+      // land below the page title.
       const activeElement = explorerUl.querySelector(".active")
       if (activeElement) {
-        activeElement.scrollIntoView({ behavior: "smooth" })
+        const top =
+          activeElement.getBoundingClientRect().top -
+          explorerUl.getBoundingClientRect().top +
+          explorerUl.scrollTop
+        explorerUl.scrollTo({ top: Math.max(0, top - explorerUl.clientHeight / 3) })
       }
     }
 

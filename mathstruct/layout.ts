@@ -33,6 +33,8 @@ export interface LayoutOptions {
   commentsEnabled?: boolean
   /** an image next to the site title, from the site root (e.g. "static/icon.png") */
   icon?: string
+  /** the math∫truct wordmark at the top of the sidebar (default true; see PageTitle) */
+  wordmark?: boolean
   /** options for the file explorer, e.g. a sortFn */
   explorer?: Parameters<typeof Component.Explorer>[0]
   /** components at the top of the right column of content pages (e.g. latest blog posts) */
@@ -66,7 +68,7 @@ export function siteLayout(o: LayoutOptions): {
       ]
     : []
 
-  const title = Component.PageTitle({ icon: o.icon })
+  const title = Component.PageTitle({ icon: o.icon, wordmark: o.wordmark ?? true })
   const search = Component.Search({ otherSites: o.searchSites ?? mathstructSites })
   const explorer = Component.Explorer(o.explorer)
 

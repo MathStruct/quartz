@@ -1,4 +1,6 @@
 @use "./base.scss";
+// the MathStruct look (black and white, as mathstruct.org); after base.scss, so it wins
+@use "./mathstruct.scss";
 
 // Obsidian "Markdown Tabs" blocks
 .obsidian-tabs {
