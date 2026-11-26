@@ -121,7 +121,14 @@ export function siteLayout(o: LayoutOptions): {
     },
 
     defaultListPageLayout: {
-      beforeBody: [Component.Breadcrumbs(), Component.ArticleTitle(), Component.ContentMeta()],
+      beforeBody: [
+        Component.Breadcrumbs(),
+        Component.ArticleTitle(),
+        // as on content pages: "中文" on a folder index with a translation, "English" on the
+        // translation itself (LanguageSwitch renders nothing when there is none)
+        Component.LanguageSwitch(),
+        Component.ContentMeta(),
+      ],
       left: [
         title,
         Component.MobileOnly(Component.Spacer()),
